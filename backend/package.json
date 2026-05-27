@@ -13,6 +13,7 @@
     "dotenv": "latest",
     "express": "latest",
     "helmet": "latest",
+    "pdf-parse": "latest",
     "pino": "latest"
   }
 }

@@ -1,29 +1,49 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { Button, SafeAreaView, Text, TextInput, View } from "react-native";
+import { useForm } from "react-hook-form";
+import { Button, Pressable, SafeAreaView, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../../app/navigation/AuthStack";
 import { useAuth } from "../../../app/providers/AuthProvider";
+import { AuthTextField } from "../../../components/ui/AuthTextField";
+import { loginSchema, type LoginValues } from "../schemas";
 import { colors } from "../../../theme/colors";
-import { radii, spacing } from "../../../theme/spacing";
+import { spacing } from "../../../theme/spacing";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
 
 export function LoginScreen({ navigation }: Props) {
-  const { signInWithPassword } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { signInWithPassword, signInWithGoogle } = useAuth();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  async function onLogin() {
-    setError(null);
-    setLoading(true);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" }
+  });
+
+  async function onSubmit(values: LoginValues) {
+    setFormError(null);
     try {
-      await signInWithPassword(email.trim(), password);
+      await signInWithPassword(values.email.trim(), values.password);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed");
+      setFormError(e instanceof Error ? e.message : "Login failed");
+    }
+  }
+
+  async function onGoogleSignIn() {
+    setFormError(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Google sign-in failed");
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   }
 
@@ -36,53 +56,50 @@ export function LoginScreen({ navigation }: Props) {
         <Text style={{ color: colors.textSecondary }}>Log in to continue studying.</Text>
 
         <View style={{ marginTop: spacing.md, gap: spacing.md }}>
-          <View style={{ gap: 6 }}>
-            <Text style={{ color: colors.textPrimary }}>Email</Text>
-            <TextInput
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.textMuted}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.md,
-                borderRadius: radii.md,
-                backgroundColor: colors.inputBackground,
-                color: colors.textPrimary
-              }}
-            />
-          </View>
+          <AuthTextField
+            control={control}
+            name="email"
+            label="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            error={errors.email?.message}
+          />
 
-          <View style={{ gap: 6 }}>
-            <Text style={{ color: colors.textPrimary }}>Password</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Your password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.md,
-                borderRadius: radii.md,
-                backgroundColor: colors.inputBackground,
-                color: colors.textPrimary
-              }}
-            />
-          </View>
+          <AuthTextField
+            control={control}
+            name="password"
+            label="Password"
+            placeholder="Your password"
+            secureTextEntry
+            error={errors.password?.message}
+          />
 
-          {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+          {formError ? <Text style={{ color: colors.error }}>{formError}</Text> : null}
 
           <Button
             color={colors.brandPrimary}
-            title={loading ? "Logging in..." : "Log in"}
-            onPress={onLogin}
-            disabled={loading}
+            title={isSubmitting ? "Logging in..." : "Log in"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSubmitting || googleLoading}
           />
+
+          <Pressable
+            onPress={onGoogleSignIn}
+            disabled={isSubmitting || googleLoading}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              paddingVertical: spacing.md,
+              alignItems: "center",
+              borderRadius: 8
+            }}
+          >
+            <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+              {googleLoading ? "Connecting to Google..." : "Continue with Google"}
+            </Text>
+          </Pressable>
 
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
             <Text onPress={() => navigation.navigate("ResetPassword")} style={{ color: colors.link }}>
@@ -97,4 +114,3 @@ export function LoginScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
-

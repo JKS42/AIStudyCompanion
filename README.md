@@ -32,6 +32,14 @@ npm install
 npm run dev
 ```
 
+### Android emulator (Windows)
+See [docs/09-android-emulator-setup.md](docs/09-android-emulator-setup.md).
+
+```powershell
+cd mobile
+npm run android:emulator
+```
+
 ## 2) Backend
 ```bash
 cd backend
@@ -44,6 +52,18 @@ Run SQL from [database/schema.sql](database/schema.sql) in Supabase SQL editor.
 
 ## UI and accessibility
 Design tokens and palette: [docs/06-ui-design-and-colors.md](docs/06-ui-design-and-colors.md). Shared colours live in `mobile/src/theme/colors.ts`.
+
+## Auth setup (email, Google, onboarding)
+Follow [docs/07-auth-setup.md](docs/07-auth-setup.md) to configure Supabase providers and redirect URLs.
+
+## Upload setup (Phase 2)
+Follow [docs/08-upload-setup.md](docs/08-upload-setup.md) to configure the Storage bucket and test uploads.
+
+## AI summary setup (Phase 3)
+Follow [docs/10-ai-summary-setup.md](docs/10-ai-summary-setup.md) to run the backend API and generate summaries from the app.
+
+## Quiz and flashcards (Phase 4)
+Follow [docs/11-quiz-flashcards-setup.md](docs/11-quiz-flashcards-setup.md) to generate quizzes, submit attempts, and run flashcard review.
 
 ## GitHub setup
 Push this repo following [docs/CONTRIBUTING-GITHUB.md](docs/CONTRIBUTING-GITHUB.md).

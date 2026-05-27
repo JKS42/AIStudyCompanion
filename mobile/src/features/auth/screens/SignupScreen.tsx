@@ -1,31 +1,54 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { Button, SafeAreaView, Text, TextInput, View } from "react-native";
+import { useForm } from "react-hook-form";
+import { Alert, Button, Pressable, SafeAreaView, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { AuthStackParamList } from "../../../app/navigation/AuthStack";
 import { useAuth } from "../../../app/providers/AuthProvider";
+import { AuthTextField } from "../../../components/ui/AuthTextField";
+import { signupSchema, type SignupValues } from "../schemas";
 import { colors } from "../../../theme/colors";
-import { radii, spacing } from "../../../theme/spacing";
+import { spacing } from "../../../theme/spacing";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Signup">;
 
 export function SignupScreen({ navigation }: Props) {
-  const { signUpWithEmail } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { signUpWithEmail, signInWithGoogle } = useAuth();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  async function onSignup() {
-    setError(null);
-    setLoading(true);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<SignupValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { fullName: "", email: "", password: "" }
+  });
+
+  async function onSubmit(values: SignupValues) {
+    setFormError(null);
     try {
-      await signUpWithEmail(email.trim(), password, fullName.trim());
-      navigation.navigate("Login");
+      await signUpWithEmail(values.email.trim(), values.password, values.fullName.trim());
+      Alert.alert(
+        "Account created",
+        "Check your email to confirm your account, then log in.",
+        [{ text: "OK", onPress: () => navigation.navigate("Login") }]
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Signup failed");
+      setFormError(e instanceof Error ? e.message : "Signup failed");
+    }
+  }
+
+  async function onGoogleSignIn() {
+    setFormError(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Google sign-in failed");
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   }
 
@@ -38,71 +61,58 @@ export function SignupScreen({ navigation }: Props) {
         <Text style={{ color: colors.textSecondary }}>Start organizing your study workflow.</Text>
 
         <View style={{ marginTop: spacing.md, gap: spacing.md }}>
-          <View style={{ gap: 6 }}>
-            <Text style={{ color: colors.textPrimary }}>Full name</Text>
-            <TextInput
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Jane Doe"
-              placeholderTextColor={colors.textMuted}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.md,
-                borderRadius: radii.md,
-                backgroundColor: colors.inputBackground,
-                color: colors.textPrimary
-              }}
-            />
-          </View>
+          <AuthTextField
+            control={control}
+            name="fullName"
+            label="Full name"
+            placeholder="Jane Doe"
+            error={errors.fullName?.message}
+          />
 
-          <View style={{ gap: 6 }}>
-            <Text style={{ color: colors.textPrimary }}>Email</Text>
-            <TextInput
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.textMuted}
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.md,
-                borderRadius: radii.md,
-                backgroundColor: colors.inputBackground,
-                color: colors.textPrimary
-              }}
-            />
-          </View>
+          <AuthTextField
+            control={control}
+            name="email"
+            label="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            error={errors.email?.message}
+          />
 
-          <View style={{ gap: 6 }}>
-            <Text style={{ color: colors.textPrimary }}>Password</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="At least 8 characters"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                padding: spacing.md,
-                borderRadius: radii.md,
-                backgroundColor: colors.inputBackground,
-                color: colors.textPrimary
-              }}
-            />
-          </View>
+          <AuthTextField
+            control={control}
+            name="password"
+            label="Password"
+            placeholder="At least 8 characters"
+            secureTextEntry
+            error={errors.password?.message}
+          />
 
-          {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+          {formError ? <Text style={{ color: colors.error }}>{formError}</Text> : null}
 
           <Button
             color={colors.brandPrimary}
-            title={loading ? "Creating..." : "Create account"}
-            onPress={onSignup}
-            disabled={loading}
+            title={isSubmitting ? "Creating..." : "Create account"}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSubmitting || googleLoading}
           />
+
+          <Pressable
+            onPress={onGoogleSignIn}
+            disabled={isSubmitting || googleLoading}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              paddingVertical: spacing.md,
+              alignItems: "center",
+              borderRadius: 8
+            }}
+          >
+            <Text style={{ color: colors.textPrimary, fontWeight: "600" }}>
+              {googleLoading ? "Connecting to Google..." : "Continue with Google"}
+            </Text>
+          </Pressable>
 
           <Text onPress={() => navigation.navigate("Login")} style={{ color: colors.link }}>
             Already have an account? Log in
@@ -112,4 +122,3 @@ export function SignupScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
-

@@ -10,6 +10,7 @@ npm-debug.log*
 .expo/
 dist/
 web-build/
+mobile/.cache/
 
 # OS / Editor
 .DS_Store

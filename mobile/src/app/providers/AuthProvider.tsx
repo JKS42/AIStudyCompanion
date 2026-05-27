@@ -1,5 +1,6 @@
 import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { registerAuthDeepLinkHandler, signInWithGoogle as googleSignIn } from "../../features/auth/googleSignIn";
 import { supabase } from "../../shared/supabase";
 
 type AuthContextValue = {
@@ -7,6 +8,7 @@ type AuthContextValue = {
   bootstrapping: boolean;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -40,9 +42,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setSession(nextSession ?? null);
     });
 
+    const removeDeepLinkHandler = registerAuthDeepLinkHandler();
+
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
+      removeDeepLinkHandler();
     };
   }, []);
 
@@ -58,9 +63,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } }
+          options: {
+            data: { full_name: fullName }
+          }
         });
         if (error) throw error;
+      },
+      async signInWithGoogle() {
+        await googleSignIn();
       },
       async resetPasswordForEmail(email) {
         const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -82,4 +92,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
-
